@@ -1,0 +1,15 @@
+{
+    "v3CoreFactoryAddress": "0xE6E340D132b5f46d1e472DebcD681B2aBc16e57E",
+    "multicall2Address": "0x84eA74d481Ee0A5332c457a4d796187F6Ba67fEB",
+    "proxyAdminAddress": "0x9E545E3C0baAB3E08CdfD552C960A1050f373042",
+    "tickLensAddress": "0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9",
+    "nftDescriptorLibraryAddressV1_3_0": "0x1613beB3B2C4f22Ee086B2b38C1476A3cE7f78E8",
+    "nonfungibleTokenPositionDescriptorAddressV1_3_0": "0x851356ae760d987E095750cCeb3bC6014560891C",
+    "descriptorProxyAddress": "0xf5059a5D33d5853360D16C683c16e67980206f36",
+    "nonfungibleTokenPositionManagerAddress": "0x95401dc811bb5740090279Ba06cfA8fcF6113778",
+    "v3MigratorAddress": "0x998abeb3E57409262aE5b751f60747921B33613E",
+    "v3StakerAddress": "0x70e0bA845a1A0F2DA3359C97E0285013525FFC49",
+    "quoterV2Address": "0x4826533B4897376654Bb4d4AD88B7faFD0C98528",
+    "swapRouter02": "0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf",
+    "syntheticToken": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"
+}
