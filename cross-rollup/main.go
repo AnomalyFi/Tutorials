@@ -16,11 +16,11 @@ import (
 	"github.com/metachris/flashbotsrpc"
 )
 
-const R1 = "http://devnet.nodekit.xyz/javelin/rpc"
-const R2 = "http://devnet.nodekit.xyz/javelin-reverse/rpc"
-const JAVELIN = "http://devnet.nodekit.xyz/javelin/rpc"
-const ORIGIN_CHAINID = 45206
-const REMOTE_CHAINID = 45207
+const R1 = "http://127.0.0.1:19545"
+const R2 = "http://127.0.0.1:19546"
+const JAVELIN = "http://127.0.0.1:3000/rpc"
+const ORIGIN_CHAINID = 45200
+const REMOTE_CHAINID = 45201
 
 func main() {
 	fbRpc1 := flashbotsrpc.NewFlashbotsRPC(R1)

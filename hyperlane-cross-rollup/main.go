@@ -49,6 +49,7 @@ var (
 	tokenRouterOrigin = flag.String("router-origin", getEnvAsStrOrDefault("TOKEN_ROUTER_ORIGIN", "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"), "token router address on origin chain")
 	tokenRouterRemote = flag.String("router-remote", getEnvAsStrOrDefault("TOKEN_ROUTER_REMOTE", "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"), "token router address on remote chain")
 	amount            = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1), "amount of token to transfer")
+	nonceInc          = flag.Int("nonce-inc", getEnvAsIntOrDefault("NONCE_INC", 0), "the nonce adjustment applied to the latest nonce") // this is for testing multiple hyperlane txs from the same account
 
 	privKey = flag.String("priv-key", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
 )
@@ -92,6 +93,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to fetch nonce: %+v\n", err)
 	}
+	nonce += uint64(*nonceInc)
+
 	gasPrice, err := originClient.SuggestGasPrice(context.TODO())
 	if err != nil {
 		log.Fatalf("unable to fetch gas price: %+v\n", err)
