@@ -50,7 +50,7 @@ var (
 	tokenRouterRemote = flag.String("router-remote", getEnvAsStrOrDefault("TOKEN_ROUTER_REMOTE", "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"), "token router address on remote chain")
 	amount            = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1), "amount of token to transfer")
 
-	privKey = flag.String("privkey", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
+	privKey = flag.String("priv-key", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
 )
 
 func main() {
