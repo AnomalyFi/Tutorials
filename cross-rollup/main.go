@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"flag"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -16,20 +19,23 @@ import (
 	"github.com/metachris/flashbotsrpc"
 )
 
-const R1 = "http://127.0.0.1:19545"
-const R2 = "http://127.0.0.1:19546"
-const JAVELIN = "http://127.0.0.1:3000/rpc"
-const ORIGIN_CHAINID = 45200
-const REMOTE_CHAINID = 45201
+var (
+	javelinUrl    = flag.String("javelin", getEnvAsStrOrDefault("JAVELIN_URL", "http://127.0.0.1:3000/rpc"), "rpc url of javelin rpc")
+	gethUrlOrigin = flag.String("geth-origin", getEnvAsStrOrDefault("GETH_URL_ORIGIN", "http://127.0.0.1:9090"), "geth rpc url on origin chain")
+	gethUrlRemote = flag.String("geth-remote", getEnvAsStrOrDefault("GETH_URL_REMOTE", "http://127.0.0.1:9091"), "geth rpc url on remote chain")
+	originChainID = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45200), "chain id of origin chain")
+	remoteChainID = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45201), "chain id of remote chain")
+	amount        = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1), "amount of token to transfer")
+
+	privKey = flag.String("priv-key", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
+)
 
 func main() {
-	fbRpc1 := flashbotsrpc.NewFlashbotsRPC(R1)
-	fbRpc2 := flashbotsrpc.NewFlashbotsRPC(R2)
-	fbRpcJavelin := flashbotsrpc.NewFlashbotsRPC(JAVELIN) // the javelin-rpc endpoint, which caches bundles and simulate them and send them in a preset interval(500ms)
+	fbRpc1 := flashbotsrpc.NewFlashbotsRPC(*gethUrlOrigin)
+	fbRpc2 := flashbotsrpc.NewFlashbotsRPC(*gethUrlRemote)
+	fbRpcJavelin := flashbotsrpc.NewFlashbotsRPC(*javelinUrl) // the javelin-rpc endpoint, which caches bundles and simulate them and send them in a preset interval(500ms)
 
-	// the wallet private key to issue cross-rollup bundle
-	testKeyStr := "47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a"
-	privKey, err := crypto.HexToECDSA(testKeyStr)
+	privKey, err := crypto.HexToECDSA(*privKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,12 +44,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	originChainID := big.NewInt(ORIGIN_CHAINID)
-	remoteChainID := big.NewInt(REMOTE_CHAINID)
+	originChainID := big.NewInt(int64(*originChainID))
+	remoteChainID := big.NewInt(int64(*remoteChainID))
 
 	// populate two transactions, one on origin chain(45206) and one on remote chain(45207), those transactions will be included in one bundle
 	// once the bundle get picked, javelin-rpc will simulate the picked bundles and filtered out the failed ones and send the successful ones to be executed atomically
-	txOrigin, err := genTransfer(fbRpc1, originChainID, privKey, addr, 20, 21000, nil)
+	txOrigin, err := genTransfer(fbRpc1, originChainID, privKey, addr, *amount, 21000, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +57,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	txRemote, err := genTransfer(fbRpc2, remoteChainID, privKey, addr, 50, 21000, nil)
+	txRemote, err := genTransfer(fbRpc2, remoteChainID, privKey, addr, *amount, 21000, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -180,4 +186,21 @@ func getAddressFromPriv(privKey *ecdsa.PrivateKey) (*common.Address, error) {
 	}
 	addr := crypto.PubkeyToAddress(*pubkeyECDSA)
 	return &addr, nil
+}
+
+func getEnvAsStrOrDefault(key string, defaultValue string) string {
+	ret := os.Getenv(key)
+	if ret == "" {
+		ret = defaultValue
+	}
+	return ret
+}
+
+func getEnvAsIntOrDefault(name string, defaultValue int) int {
+	if valueStr, exists := os.LookupEnv(name); exists {
+		if value, err := strconv.Atoi(valueStr); err == nil {
+			return value
+		}
+	}
+	return defaultValue
 }
