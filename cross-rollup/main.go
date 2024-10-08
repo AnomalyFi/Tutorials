@@ -31,6 +31,8 @@ var (
 )
 
 func main() {
+	flag.Parse()
+
 	fbRpc1 := flashbotsrpc.NewFlashbotsRPC(*gethUrlOrigin)
 	fbRpc2 := flashbotsrpc.NewFlashbotsRPC(*gethUrlRemote)
 	fbRpcJavelin := flashbotsrpc.NewFlashbotsRPC(*javelinUrl) // the javelin-rpc endpoint, which caches bundles and simulate them and send them in a preset interval(500ms)
