@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,7 +38,8 @@ func main() {
 	fbRpc2 := flashbotsrpc.NewFlashbotsRPC(*gethUrlRemote)
 	fbRpcJavelin := flashbotsrpc.NewFlashbotsRPC(*javelinUrl) // the javelin-rpc endpoint, which caches bundles and simulate them and send them in a preset interval(500ms)
 
-	privKey, err := crypto.HexToECDSA(*privKey)
+	pkHex := strings.TrimLeft(*privKey, "0x")
+	privKey, err := crypto.HexToECDSA(pkHex)
 	if err != nil {
 		log.Fatal(err)
 	}
