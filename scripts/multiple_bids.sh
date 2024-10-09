@@ -22,21 +22,17 @@ echo "javelin rpc: $JAVELIN_RPC"
 # to hold multiple PIDs
 PIDS=()
 
-# 1st tx
-cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --nonce 10 &
+# case 1:
+# multiple bids (if possible)
+cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
 PIDS+=($!)
 
-# 2nd tx
-cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value $ANOTHER_AMOUNT --nonce 10 &
+cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value 2 --gas-limit 21000 --gas-price 100000 &
 PIDS+=($!)
 
-# 3rd tx
-cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value $YET_ANOTHER_AMOUNT --nonce 9 &
-PIDS+=($!)
+# case 2 ...
 
-# 4th tx
-cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value $YET_ANOTHER_AMOUNT --nonce 11 &
-PIDS+=($!)
+# case 3 ...
 
 # wait for PIDs to complete
 for PID in "${PIDS[@]}"; do
