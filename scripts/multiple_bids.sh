@@ -23,16 +23,37 @@ echo "javelin rpc: $JAVELIN_RPC"
 PIDS=()
 
 # case 1:
-# multiple bids (if possible)
+# multiple users submit to Rollup 1, diff vals but same gas prices
+#cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
+#PIDS+=($!)
+#
+#cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 5 --gas-limit 21000 --gas-price 100000 &
+#PIDS+=($!)
+#
+#cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value 7 --gas-limit 21000 --gas-price 100000 &
+#PIDS+=($!)
+
+# case 2
+# like case 1 but diff gas prices
+#cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
+#PIDS+=($!)
+#
+#cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 5 --gas-limit 21000 --gas-price 1000000 &
+#PIDS+=($!)
+#
+#cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value 7 --gas-limit 21000 --gas-price 10000 &
+#PIDS+=($!)
+
+# case 3
+# multiple users submit to both rollups, diff vals & diff gas prices
 cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
 PIDS+=($!)
 
-cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value 2 --gas-limit 21000 --gas-price 100000 &
+cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 8 --gas-limit 21000 --gas-price 1000000 &
 PIDS+=($!)
 
-# case 2 ...
-
-# case 3 ...
+cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $REMOTE_GETH --private-key $PRIVATE_KEY3 --value 20 --gas-limit 21000 --gas-price 100000000 &
+PIDS+=($!)
 
 # wait for PIDs to complete
 for PID in "${PIDS[@]}"; do

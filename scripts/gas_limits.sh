@@ -45,11 +45,6 @@ PIDS+=($!)
 cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $REMOTE_GETH --private-key $PRIVATE_KEY2 --value $AMOUNT --gas-limit 21000 --gas-price 100 &
 PIDS+=($!)
 
-# case 4:
-# high gas enough to occupy entire block limit and exclude other txs 
-cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value $AMOUNT --gas-limit 10000000 --gas-price ? &
-PIDS+=($!)
-
 # wait for PIDs to complete
 for PID in "${PIDS[@]}"; do
     wait $PID
