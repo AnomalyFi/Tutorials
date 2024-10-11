@@ -7,6 +7,8 @@ AMOUNT=${AMOUNT:-1}
 PRIVATE_KEY=${PRIVATE_KEY:-0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6}
 PRIVATE_KEY2=${PRIVATE_KEY2:-0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a}
 PRIVATE_KEY3=${PRIVATE_KEY3:-0x47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a}
+PRIVATE_KEY4=${PRIVATE_KEY4:-0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6}
+
 ORIGIN_CHAINID=$((45200 + $INC))
 REMOTE_CHAINID=$((45200 + $INC + 1))
 ORIGIN_GETH_PORT=$((19545 + $INC))
@@ -24,36 +26,42 @@ PIDS=()
 
 # case 1:
 # multiple users submit to Rollup 1, diff vals but same gas prices
-#cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
-#PIDS+=($!)
-#
-#cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 5 --gas-limit 21000 --gas-price 100000 &
-#PIDS+=($!)
-#
-#cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value 7 --gas-limit 21000 --gas-price 100000 &
-#PIDS+=($!)
+cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
+PIDS+=($!)
+
+cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value 5 --gas-limit 21000 --gas-price 100000 &
+PIDS+=($!)
+
+cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value 7 --gas-limit 21000  --gas-price 1000 &
+PIDS+=($!)
+
+cast send 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 --rpc-url $REMOTE_GETH --private-key $PRIVATE_KEY3 --value 3 --gas-limit 21000 &
+PIDS+=($!)
 
 # case 2
 # like case 1 but diff gas prices
-#cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
+#cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
 #PIDS+=($!)
 #
-#cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 5 --gas-limit 21000 --gas-price 1000000 &
+#cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value 5 --gas-limit 21000 --gas-price 1000000 &
 #PIDS+=($!)
 #
-#cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value 7 --gas-limit 21000 --gas-price 10000 &
+#cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 7 --gas-limit 21000 --gas-price 10000 &
 #PIDS+=($!)
 
 # case 3
 # multiple users submit to both rollups, diff vals & diff gas prices
-cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY --value $AMOUNT --gas-limit 21000 --gas-price 100000 &
-PIDS+=($!)
-
-cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY2 --value 8 --gas-limit 21000 --gas-price 1000000 &
-PIDS+=($!)
-
-cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $REMOTE_GETH --private-key $PRIVATE_KEY3 --value 20 --gas-limit 21000 --gas-price 100000000 &
-PIDS+=($!)
+#cast send 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY4 --value $AMOUNT --gas-limit 21000 &
+#PIDS+=($!)
+#
+#cast send 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --rpc-url $ORIGIN_GETH --private-key $PRIVATE_KEY3 --value 10 --gas-limit 21000 --gas-price 1000000 &
+#PIDS+=($!)
+#
+#cast send 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --rpc-url $REMOTE_GETH --private-key $PRIVATE_KEY2 --value 12 --gas-limit 21000 --gas-price 100000000 &
+#PIDS+=($!)
+#
+#cast send 0xa0Ee7A142d267C1f36714E4a8F75612F20a79720 --rpc-url $REMOTE_GETH --private-key $PRIVATE_KEY --value 20 --gas-limit 21000 &
+#PIDS+=($!)
 
 # wait for PIDs to complete
 for PID in "${PIDS[@]}"; do

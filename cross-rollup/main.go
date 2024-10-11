@@ -24,7 +24,7 @@ var (
 	javelinUrl    = flag.String("javelin", getEnvAsStrOrDefault("JAVELIN_URL", "http://127.0.0.1:3000/rpc"), "rpc url of javelin rpc")
 	gethUrlOrigin = flag.String("geth-origin", getEnvAsStrOrDefault("GETH_URL_ORIGIN", "http://127.0.0.1:19550"), "geth rpc url on origin chain")
 	gethUrlRemote = flag.String("geth-remote", getEnvAsStrOrDefault("GETH_URL_REMOTE", "http://127.0.0.1:19551"), "geth rpc url on remote chain")
-	originChainID = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45205), "chain id of origin chain")
+	originChainID = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45200), "chain id of origin chain")
 	remoteChainID = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45206), "chain id of remote chain")
 	amount        = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1), "amount of token to transfer")
 
