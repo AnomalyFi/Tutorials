@@ -4,6 +4,5 @@ Tutorials included:
 
 - The use of `eth_sendBundleCrossRollup` at [cross-rollup](./cross-rollup)
 
-  
+- The use of sending atomic hyperlane token transfer between chains at [hyperlane-cross-rollup](./hyperlane-cross-rollup)
 
-- The use of sending atomic hyperlane token transfer between chains at [hyperlane-demo](./hyperlane-demo)
