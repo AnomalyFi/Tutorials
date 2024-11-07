@@ -29,7 +29,7 @@ var (
 	remoteChainID = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45206), "chain id of remote chain")
 	oftOrigin     = flag.String("oft-origin", getEnvAsStrOrDefault("OFT_ORIGIN", "0x985060F8b809F08392FB4E23622E9E6881c22d0b"), "oft address on origin chain")
 	oftRemote     = flag.String("oft-remote", getEnvAsStrOrDefault("OFT_REMOTE", "0x985060F8b809F08392FB4E23622E9E6881c22d0b"), "oft address on remote chain")
-	amount        = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1e+18), "amount of oft to transfer")
+	amount        = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1000000000000), "amount of oft to transfer")
 	nonceInc      = flag.Int("nonce-inc", getEnvAsIntOrDefault("NONCE_INC", 0), "the nonce adjustment applied to the latest nonce") // this is for testing multiple hyperlane txs from the same account
 
 	privKey = flag.String("priv-key", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
@@ -99,16 +99,25 @@ func main() {
 	if err != nil {
 		log.Fatal(fmt.Errorf("contract err: %w", err))
 	}
-	extraOptions := contracts.NewOptions()
-	extraOptions, err = contracts.AddExecutorLzReceiveOption(extraOptions, 65000, 0)
+	balance, err := oftOrigin.BalanceOf(nil, fromAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Printf("balance of sender: %+v\n", balance)
+
+	// desire extra: 0x0003010011010000000000000000000000000000fde8
+	extraOptions := contracts.NewOptions()
+	extraOptions, err = contracts.AddExecutorLzReceiveOption(extraOptions, big.NewInt(65000), big.NewInt(0))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("extraOptions: %s\n", hexutil.Encode(extraOptions))
 	sendParams := contracts.SendParam{
 		DstEid:       uint32(*remoteChainID),
 		To:           padAddressToBytes32(oftRemoteAddress),
 		AmountLD:     big.NewInt(int64(*amount)),
-		MinAmountLD:  big.NewInt(int64(*amount * 9 / 10)),
+		MinAmountLD:  big.NewInt(0),
 		ExtraOptions: extraOptions,
 		ComposeMsg:   nil,
 		OftCmd:       nil,

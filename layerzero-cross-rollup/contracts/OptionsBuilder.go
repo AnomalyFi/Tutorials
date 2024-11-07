@@ -4,72 +4,126 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"math/big"
 )
 
-// Constants representing option types
+// Constants for OptionsBuilder
 const (
-	TYPE_1 uint16 = 1
-	TYPE_2 uint16 = 2
+	TYPE_1 uint16 = 1 // legacy options type 1
+	TYPE_2 uint16 = 2 // legacy options type 2
 	TYPE_3 uint16 = 3
-
-	OPTION_TYPE_LZRECEIVE uint8 = 1
-	WORKER_ID             uint8 = 0x01
 )
 
-// Helper function to convert uint16 to bytes
-func toBytesUint16(value uint16) []byte {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.BigEndian, value)
-	return buf.Bytes()
-}
+// Constants for ExecutorOptions
+const (
+	WORKER_ID                     uint8 = 1
+	OPTION_TYPE_LZRECEIVE         uint8 = 1
+	OPTION_TYPE_NATIVE_DROP       uint8 = 2
+	OPTION_TYPE_LZCOMPOSE         uint8 = 3
+	OPTION_TYPE_ORDERED_EXECUTION uint8 = 4
+)
 
-// Helper function to convert uint128 to bytes
-func toBytesUint128(value uint64) []byte {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.BigEndian, value)
-	return buf.Bytes()
-}
-
-// Equivalent to Solidity's newOptions()
+// NewOptions initializes a new options byte slice with TYPE_3.
 func NewOptions() []byte {
-	return append([]byte{}, byte(TYPE_3))
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, TYPE_3)
+	return buf.Bytes()
 }
 
-// Equivalent to Solidity's addExecutorLzReceiveOption function
-func AddExecutorLzReceiveOption(options []byte, gas uint64, value uint64) ([]byte, error) {
+// AddExecutorLzReceiveOption adds an LZ Receive option to the existing options.
+// It ensures that the existing options are of TYPE_3.
+func AddExecutorLzReceiveOption(options []byte, gas, value *big.Int) ([]byte, error) {
 	if !isType3(options) {
-		return nil, errors.New("only type 3 options are supported")
+		return nil, errors.New("options type is not TYPE_3")
 	}
-	option := EncodeLzReceiveOption(gas, value)
+
+	option, err := ExecutorOptionsEncodeLzReceiveOption(gas, value)
+	if err != nil {
+		return nil, err
+	}
+
 	return AddExecutorOption(options, OPTION_TYPE_LZRECEIVE, option)
 }
 
-// Equivalent to Solidity's addExecutorOption function
+// AddExecutorOption adds a generic executor option to the existing options.
+// It ensures that the existing options are of TYPE_3.
 func AddExecutorOption(options []byte, optionType uint8, option []byte) ([]byte, error) {
 	if !isType3(options) {
-		return nil, errors.New("only type 3 options are supported")
+		return nil, errors.New("options type is not TYPE_3")
 	}
 
-	optionLength := uint16(len(option) + 1) // +1 for optionType
-	optionLengthBytes := toBytesUint16(optionLength)
+	buf := new(bytes.Buffer)
+	buf.Write(options)
 
-	encoded := append(options, WORKER_ID)
-	encoded = append(encoded, optionLengthBytes...)
-	encoded = append(encoded, optionType)
-	encoded = append(encoded, option...)
+	// Append WORKER_ID
+	buf.WriteByte(WORKER_ID)
 
-	return encoded, nil
-}
-
-// Equivalent to Solidity's ExecutorOptions.encodeLzReceiveOption function
-func EncodeLzReceiveOption(gas uint64, value uint64) []byte {
-	if value == 0 {
-		return toBytesUint128(gas)
+	// Calculate option length: len(option) + 1 for optionType
+	optionLength := uint16(len(option) + 1)
+	if err := binary.Write(buf, binary.BigEndian, optionLength); err != nil {
+		return nil, err
 	}
-	return append(toBytesUint128(gas), toBytesUint128(value)...)
+
+	// Append OPTION_TYPE
+	buf.WriteByte(optionType)
+
+	// Append the actual option bytes
+	buf.Write(option)
+
+	return buf.Bytes(), nil
 }
 
-// Helper function to check if options are of TYPE_3
+// isType3 checks if the options start with TYPE_3.
 func isType3(options []byte) bool {
-	return len(options) > 0 && options[0] == byte(TYPE_3)
+	if len(options) < 2 {
+		return false
+	}
+	return binary.BigEndian.Uint16(options[:2]) == TYPE_3
+}
+
+// ExecutorOptions functions
+// EncodeLzReceiveOption encodes the LZ Receive option based on _gas and _value.
+// If _value is zero, it encodes only _gas. Otherwise, it encodes both _gas and _value.
+func ExecutorOptionsEncodeLzReceiveOption(gas, value *big.Int) ([]byte, error) {
+	if gas == nil {
+		return nil, errors.New("gas cannot be nil")
+	}
+
+	gasBytes, err := encodeUint128(gas)
+	if err != nil {
+		return nil, err
+	}
+
+	if value == nil {
+		return nil, errors.New("value cannot be nil")
+	}
+
+	if value.Cmp(big.NewInt(0)) == 0 {
+		return gasBytes, nil
+	}
+
+	valueBytes, err := encodeUint128(value)
+	if err != nil {
+		return nil, err
+	}
+
+	// Concatenate gasBytes and valueBytes
+	return append(gasBytes, valueBytes...), nil
+}
+
+// encodeUint128 encodes a big.Int into a 16-byte big-endian representation.
+func encodeUint128(n *big.Int) ([]byte, error) {
+	if n.Sign() < 0 {
+		return nil, errors.New("cannot encode negative numbers as uint128")
+	}
+
+	bytes128 := n.Bytes()
+	if len(bytes128) > 16 {
+		return nil, errors.New("integer overflow: cannot encode numbers larger than 128 bits")
+	}
+
+	// Prepend zeros if necessary to make it 16 bytes
+	padded := make([]byte, 16)
+	copy(padded[16-len(bytes128):], bytes128)
+	return padded, nil
 }
