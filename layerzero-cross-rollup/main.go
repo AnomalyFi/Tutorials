@@ -115,7 +115,7 @@ func main() {
 	fmt.Printf("extraOptions: %s\n", hexutil.Encode(extraOptions))
 	sendParams := contracts.SendParam{
 		DstEid:       uint32(*remoteChainID),
-		To:           padAddressToBytes32(oftRemoteAddress),
+		To:           padAddressToBytes32(fromAddress),
 		AmountLD:     big.NewInt(int64(*amount)),
 		MinAmountLD:  big.NewInt(0),
 		ExtraOptions: extraOptions,
