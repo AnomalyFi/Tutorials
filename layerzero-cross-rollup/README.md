@@ -1,6 +1,6 @@
-## Hyperlane Cross Rollup Bundle Example
+## Layerzero atomic cross rollup bundle example
 
-In this example, we implemented the functionality to send atomic hyperlane transfers in minimal codes. For detail of how to construct such cross rollup bundle, check `main.go`
+In this example, we implemented the minimal codes to send Layerzero OFTs between origin chain and target chain atomically through Javelin Cross-Rollup Bundle. For detail, check codes at `main.go` 
 
 ### Usage
 
@@ -24,33 +24,27 @@ go run main.go --javelin $JAVELIN --geth-origin $GETH_ORIGIN --geth-remote $GETH
 Program usage:
 
 ```shell
-➜  hyperlane-cross-rollup git:(main) ✗ go run main.go --help
-Usage of /tmp/go-build1293359915/b001/exe/main:
+➜  layerzero-cross-rollup git:(main) ✗ go run main.go --help
+Usage of /tmp/go-build2295665594/b001/exe/main:
   -amount int
-        amount of token to transfer (default 1)
+        amount of oft to transfer (default 1000000000000)
   -geth-origin string
         geth rpc url on origin chain (default "http://127.0.0.1:9090")
   -geth-remote string
         geth rpc url on remote chain (default "http://127.0.0.1:9091")
   -javelin string
         rpc url of javelin rpc (default "http://127.0.0.1:3000/rpc")
-  -mailbox-origin string
-        mailbox address on origin chain (default "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853")
-  -mailbox-remote string
-        mailbox address on remote chain (default "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853")
   -nonce-inc int
         the nonce adjustment applied to the latest nonce
+  -oft-origin string
+        oft address on origin chain (default "0x985060F8b809F08392FB4E23622E9E6881c22d0b")
+  -oft-remote string
+        oft address on remote chain (default "0x985060F8b809F08392FB4E23622E9E6881c22d0b")
   -origin-chainid int
-        chain id of origin chain (default 45200)
+        chain id of origin chain (default 45205)
   -priv-key string
         priv key of wallet without 0x prefix (default "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6")
   -remote-chainid int
-        chain id of remote chain (default 45201)
-  -router-origin string
-        token router address on origin chain (default "0x4A679253410272dd5232B3Ff7cF5dbB88f295319")
-  -router-remote string
-        token router address on remote chain (default "0x4A679253410272dd5232B3Ff7cF5dbB88f295319")
-  -token-type string
-        token type on origin chain to transfer from origin chain to remote chain (default "native")
+        chain id of remote chain (default 45206)
 ```
 

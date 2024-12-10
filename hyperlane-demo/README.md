@@ -1,6 +1,6 @@
-## Deprecated
+## Deprecated, See equivalent hyperlane-cross-rollup example instead
 
-Please check hyperlane website on how to send hyperlane txs to any geth endpoint of the rollups provided in Nodekit.  We will wrap any hyperlane tx as cross rollup bundle for you to pertain atomicity. 
+Please check hyperlane website on how to send hyperlane txs to any geth endpoint of the rollups provided in Nodekit.  We will wrap any hyperlane tx to a cross rollup bundle for you to pertain atomicity. 
 
 Hyperlane website: https://docs.hyperlane.xyz/docs/guides/deploy-warp-route
 
