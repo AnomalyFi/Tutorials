@@ -23,10 +23,10 @@ import (
 
 var (
 	javelinUrl    = flag.String("javelin", getEnvAsStrOrDefault("JAVELIN_URL", "http://127.0.0.1:3000/rpc"), "rpc url of javelin rpc")
-	gethUrlOrigin = flag.String("geth-origin", getEnvAsStrOrDefault("GETH_URL_ORIGIN", "http://127.0.0.1:9090"), "geth rpc url on origin chain")
-	gethUrlRemote = flag.String("geth-remote", getEnvAsStrOrDefault("GETH_URL_REMOTE", "http://127.0.0.1:9091"), "geth rpc url on remote chain")
-	originChainID = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45205), "chain id of origin chain")
-	remoteChainID = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45206), "chain id of remote chain")
+	gethUrlOrigin = flag.String("geth-origin", getEnvAsStrOrDefault("GETH_URL_ORIGIN", "http://127.0.0.1:19551"), "geth rpc url on origin chain")
+	gethUrlRemote = flag.String("geth-remote", getEnvAsStrOrDefault("GETH_URL_REMOTE", "http://127.0.0.1:19552"), "geth rpc url on remote chain")
+	originChainID = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45206), "chain id of origin chain")
+	remoteChainID = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45207), "chain id of remote chain")
 	oftOrigin     = flag.String("oft-origin", getEnvAsStrOrDefault("OFT_ORIGIN", "0x985060F8b809F08392FB4E23622E9E6881c22d0b"), "oft address on origin chain")
 	oftRemote     = flag.String("oft-remote", getEnvAsStrOrDefault("OFT_REMOTE", "0x985060F8b809F08392FB4E23622E9E6881c22d0b"), "oft address on remote chain")
 	amount        = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1000000000000), "amount of oft to transfer")
@@ -78,6 +78,8 @@ func main() {
 		log.Fatalf("unable to fetch nonce: %+v\n", err)
 	}
 	nonce += uint64(*nonceInc)
+
+	fmt.Printf("sending bundle with nonce: %d\n", nonce)
 
 	gasPrice, err := originClient.SuggestGasPrice(context.TODO())
 	if err != nil {
@@ -212,14 +214,16 @@ func waitForBundleAcceptance(ctx context.Context, pk *ecdsa.PrivateKey, rpc *fla
 			}
 			log.Printf("status resp: %+v\n", bundleStatusResp)
 			// included
-			switch bundleStatusResp.StatusCode {
-			case 0x0:
+			switch bundleStatusResp.Status {
+			case "accepted":
 				log.Printf("bundle accepted")
 				return nil
-			case 0x1:
+			case "rejected":
 				log.Fatalf("bundle rejected, %+v", bundleStatusResp.Status)
-			case 0x2:
+			case "included":
 				log.Printf("bundle not sent to SEQ yet, Status: %s", bundleStatusResp.Status)
+			default:
+				log.Printf("unknown bundle status, Status: %s", bundleStatusResp.Status)
 			}
 		}
 	}
