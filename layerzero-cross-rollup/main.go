@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bianyuanop/lz-cross-rollup/contracts"
@@ -30,7 +31,9 @@ var (
 	oftOrigin     = flag.String("oft-origin", getEnvAsStrOrDefault("OFT_ORIGIN", "0x985060F8b809F08392FB4E23622E9E6881c22d0b"), "oft address on origin chain")
 	oftRemote     = flag.String("oft-remote", getEnvAsStrOrDefault("OFT_REMOTE", "0x985060F8b809F08392FB4E23622E9E6881c22d0b"), "oft address on remote chain")
 	amount        = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1000000000000), "amount of oft to transfer")
-	nonceInc      = flag.Int("nonce-inc", getEnvAsIntOrDefault("NONCE_INC", 0), "the nonce adjustment applied to the latest nonce") // this is for testing multiple hyperlane txs from the same account
+	nonce         = flag.Int("nonce", getEnvAsIntOrDefault("NONCE_INC", 0), "the nonce adjustment applied to the latest nonce") // this is for testing multiple hyperlane txs from the same account
+	target        = flag.String("target", getEnvAsStrOrDefault("TARGET", "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), "which account to send token to")
+	timestamp     = flag.Int("timestamp", getEnvAsIntOrDefault("TIMESTAMP", 0), "timestamp for ordering of bundles on javelin-rpc")
 
 	privKey = flag.String("priv-key", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
 )
@@ -63,7 +66,7 @@ func main() {
 	fmt.Printf("oft origin: %+v\n", oftOriginAddress)
 	fmt.Printf("oft remote: %+v\n", oftRemoteAddress)
 
-	privKey, err := crypto.HexToECDSA(*privKey)
+	privKey, err := crypto.HexToECDSA(strings.TrimLeft(*privKey, "0x"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,12 +75,16 @@ func main() {
 	if !ok {
 		log.Fatal("error casting public key to ECDSA")
 	}
+	targetAddress := common.HexToAddress(*target)
 	fromAddress := crypto.PubkeyToAddress(*pubkeyECDSA)
-	nonce, err := originClient.NonceAt(context.Background(), fromAddress, nil)
-	if err != nil {
-		log.Fatalf("unable to fetch nonce: %+v\n", err)
+	nonce2use := int64(*nonce)
+	if *nonce == 0 {
+		queried, err := originClient.NonceAt(context.Background(), fromAddress, nil)
+		if err != nil {
+			log.Fatalf("unable to fetch nonce: %+v\n", err)
+		}
+		nonce2use = int64(queried)
 	}
-	nonce += uint64(*nonceInc)
 
 	fmt.Printf("sending bundle with nonce: %d\n", nonce)
 
@@ -91,7 +98,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to gen auth: %+v\n", err)
 	}
-	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Nonce = big.NewInt(nonce2use)
 	auth.Value = big.NewInt(0)         // on origin chain this has to be the exact amount you want to transfer to the token router contract
 	auth.GasLimit = uint64(21000 * 10) // in units
 	auth.GasPrice = gasPrice
@@ -117,7 +124,7 @@ func main() {
 	fmt.Printf("extraOptions: %s\n", hexutil.Encode(extraOptions))
 	sendParams := contracts.SendParam{
 		DstEid:       uint32(*remoteChainID),
-		To:           padAddressToBytes32(fromAddress),
+		To:           padAddressToBytes32(targetAddress),
 		AmountLD:     big.NewInt(int64(*amount)),
 		MinAmountLD:  big.NewInt(0),
 		ExtraOptions: extraOptions,
@@ -145,9 +152,15 @@ func main() {
 	blockNumber := make(map[string]string)
 	blockNumber[hexutil.EncodeBig(originChainID)] = "0x0"
 
+	minTimestamp := (*uint64)(nil)
+	if *timestamp != 0 {
+		ts := uint64(*timestamp)
+		minTimestamp = &ts
+	}
 	bundleArgs := flashbotsrpc.FlashbotsSendBundleCrossRollupRequest{
-		Txs:         txs,
-		BlockNumber: blockNumber,
+		Txs:          txs,
+		BlockNumber:  blockNumber,
+		MinTimestamp: minTimestamp,
 	}
 
 	fbRpc := flashbotsrpc.NewFlashbotsRPC(*javelinUrl)

@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bianyuanop/hyperlane-demo/contracts/hyperc20"
@@ -39,17 +40,19 @@ import (
 
 var (
 	javelinUrl        = flag.String("javelin", getEnvAsStrOrDefault("JAVELIN_URL", "http://127.0.0.1:3000/rpc"), "rpc url of javelin rpc")
-	gethUrlOrigin     = flag.String("geth-origin", getEnvAsStrOrDefault("GETH_URL_ORIGIN", "http://127.0.0.1:9090"), "geth rpc url on origin chain")
-	gethUrlRemote     = flag.String("geth-remote", getEnvAsStrOrDefault("GETH_URL_REMOTE", "http://127.0.0.1:9091"), "geth rpc url on remote chain")
-	originChainID     = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45200), "chain id of origin chain")
-	remoteChainID     = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45201), "chain id of remote chain")
+	gethUrlOrigin     = flag.String("geth-origin", getEnvAsStrOrDefault("GETH_URL_ORIGIN", "http://127.0.0.1:19551"), "geth rpc url on origin chain")
+	gethUrlRemote     = flag.String("geth-remote", getEnvAsStrOrDefault("GETH_URL_REMOTE", "http://127.0.0.1:19552"), "geth rpc url on remote chain")
+	originChainID     = flag.Int("origin-chainid", getEnvAsIntOrDefault("ORIGIN_CHAINID", 45206), "chain id of origin chain")
+	remoteChainID     = flag.Int("remote-chainid", getEnvAsIntOrDefault("REMOTE_CHAINID", 45207), "chain id of remote chain")
 	mailboxOrigin     = flag.String("mailbox-origin", getEnvAsStrOrDefault("MAILBOX_ORIGIN", "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"), "mailbox address on origin chain")
 	mailboxRemote     = flag.String("mailbox-remote", getEnvAsStrOrDefault("MAILBOX_REMOTE", "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"), "mailbox address on remote chain")
 	tokenType         = flag.String("token-type", getEnvAsStrOrDefault("TOKEN_TYPE", "native"), "token type on origin chain to transfer from origin chain to remote chain")
 	tokenRouterOrigin = flag.String("router-origin", getEnvAsStrOrDefault("TOKEN_ROUTER_ORIGIN", "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"), "token router address on origin chain")
 	tokenRouterRemote = flag.String("router-remote", getEnvAsStrOrDefault("TOKEN_ROUTER_REMOTE", "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"), "token router address on remote chain")
+	target            = flag.String("target", getEnvAsStrOrDefault("TARGET", "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"), "which account to send token to")
 	amount            = flag.Int("amount", getEnvAsIntOrDefault("AMOUNT", 1), "amount of token to transfer")
-	nonceInc          = flag.Int("nonce-inc", getEnvAsIntOrDefault("NONCE_INC", 0), "the nonce adjustment applied to the latest nonce") // this is for testing multiple hyperlane txs from the same account
+	nonce             = flag.Int("nonce", getEnvAsIntOrDefault("NONCE_INC", 0), "the nonce adjustment applied to the latest nonce") // this is for testing multiple hyperlane txs from the same account
+	timestamp         = flag.Int("timestamp", getEnvAsIntOrDefault("TIMESTAMP", 0), "timestamp for ordering of bundles on javelin-rpc")
 
 	privKey = flag.String("priv-key", getEnvAsStrOrDefault("PRIV_KEY", "7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6"), "priv key of wallet without 0x prefix")
 )
@@ -79,7 +82,7 @@ func main() {
 		log.Fatalf("unable to new TokenRouter at origin: %+v\n", err)
 	}
 
-	privKey, err := crypto.HexToECDSA(*privKey)
+	privKey, err := crypto.HexToECDSA(strings.TrimLeft(*privKey, "0x"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,11 +92,14 @@ func main() {
 		log.Fatal("error casting public key to ECDSA")
 	}
 	fromAddress := crypto.PubkeyToAddress(*pubkeyECDSA)
-	nonce, err := originClient.NonceAt(context.Background(), fromAddress, nil)
-	if err != nil {
-		log.Fatalf("unable to fetch nonce: %+v\n", err)
+	nonce2use := uint64(*nonce)
+	if *nonce == 0 {
+		nonceQueried, err := originClient.NonceAt(context.Background(), fromAddress, nil)
+		if err != nil {
+			log.Fatalf("unable to fetch nonce: %+v\n", err)
+		}
+		nonce2use = nonceQueried
 	}
-	nonce += uint64(*nonceInc)
 
 	gasPrice, err := originClient.SuggestGasPrice(context.TODO())
 	if err != nil {
@@ -146,15 +152,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("unable to gen auth: %+v\n", err)
 	}
-	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Nonce = big.NewInt(int64(nonce2use))
 	auth.Value = txValue           // on origin chain this has to be the exact amount you want to transfer to the token router contract
 	auth.GasLimit = uint64(300000) // in units
 	auth.GasPrice = gasPrice
 	auth.NoSend = true
 
+	targetAddress := common.FromHex(*target)
 	// pad 0 to fill up the 32 bytes
 	var remoteAddress32 [32]byte
-	remoteAddress := hexutil.MustDecode(fromAddress.Hex())
+	remoteAddress := hexutil.MustDecode(string(targetAddress))
 	copy(remoteAddress32[32-len(remoteAddress):], remoteAddress)
 	log.Printf("address32: %s, address: %s\n", hexutil.Encode(remoteAddress32[:]), hexutil.Encode(remoteAddress))
 
@@ -176,9 +183,15 @@ func main() {
 	blockNumber := make(map[string]string)
 	blockNumber[hexutil.EncodeBig(originChainID)] = "0x0"
 
+	minTimestamp := (*uint64)(nil)
+	if *timestamp != 0 {
+		ts := uint64(*timestamp)
+		minTimestamp = &ts
+	}
 	bundleArgs := flashbotsrpc.FlashbotsSendBundleCrossRollupRequest{
-		Txs:         txs,
-		BlockNumber: blockNumber,
+		Txs:          txs,
+		BlockNumber:  blockNumber,
+		MinTimestamp: minTimestamp,
 	}
 
 	fbRpc := flashbotsrpc.NewFlashbotsRPC(*javelinUrl)
@@ -299,14 +312,16 @@ func waitForBundleAcceptance(ctx context.Context, pk *ecdsa.PrivateKey, rpc *fla
 			}
 			log.Printf("status resp: %+v\n", bundleStatusResp)
 			// included
-			switch bundleStatusResp.StatusCode {
-			case 0x0:
+			switch bundleStatusResp.Status {
+			case "accepted":
 				log.Printf("bundle accepted")
 				return nil
-			case 0x1:
-				log.Fatalf("bundle rejected, %+v", bundleStatusResp.Status)
-			case 0x2:
-				log.Printf("bundle not sent to SEQ yet, Status: %s", bundleStatusResp.Status)
+			case "rejected":
+				log.Fatalf("bundle rejected, %s", bundleStatusResp.Status)
+			case "included":
+				log.Fatalf("bundle included, %s", bundleStatusResp.Status)
+			default:
+				log.Printf("unknown bundle status: %s", bundleStatusResp.Status)
 			}
 		}
 	}
