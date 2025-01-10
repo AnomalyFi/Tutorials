@@ -3,7 +3,7 @@
 ROOT=$(pwd)
 INC=${INC:-0}
 HOST=${HOST:-127.0.0.1}
-NUM_ITER=5
+SPAM_ITER=5
 
 LZ_PROGRAM_DIR="./layerzero-cross-rollup"
 HYP_PROGRAM_DIR="./hyperlane-cross-rollup"
@@ -130,26 +130,65 @@ function increment_timestamp() {
 
 # increment_timestamp
 
-PIDS=()
-
-for ((i=1;i<=$NUM_ITER;i++));
+nonce_origin=${NONCES_ORIGIN[0]}
+SPAM_PIDS=()
+for ((i=1;i<=$SPAM_ITER;i++));
 do
-    if (( i < 3)) 
-    then
-        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((NONCES_ORIGIN+i)) ${TARGET_ADDRS[1]}
-        TX_PID=$!
-        PIDS+=("$LZ_PID")
-    else
-        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((NONCES_ORIGIN+i)) $GLOBAL_TIMESTAMP
-        LZ_PID=$!
-        PIDS+=("$LZ_PID")
-        increment_timestamp
-    fi
+    send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
+    TX_PID=$!
+    SPAM_PIDS+=("$LZ_PID")
+
+    send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+    LZ_PID=$!
+    SPAM_PIDS+=("$LZ_PID")
+    increment_timestamp
+
+    send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+    HYP_PID=$!
+    SPAM_PIDS+=("$LZ_PID")
+    increment_timestamp
 done
 
-for pid in "${PIDS[@]}"; do 
+for pid in "${SPAM_PIDS[@]}"; do 
     wait $pid
     res=$?
     echo "status code: $res"
 done
 
+# sleep 20s waiting all bundles & txs are settled, either rejected or accepted
+sleep 20
+
+# refresh current nonce
+NONCES_ORIGIN=()
+NONCES_REMOTE=()
+
+# Loop through each address and get the nonce
+for addr in "${TARGET_ADDRS[@]}"; do
+    # Fetch the nonce using cast nonce and store it in a variable
+    nonce_origin=$(cast nonce "$addr" --rpc-url $ORIGIN_GETH)
+    nonce_remote=$(cast nonce "$addr" --rpc-url $REMOTE_GETH)
+    
+    # Append the nonce to the NONCES array
+    NONCES_ORIGIN+=("$nonce_origin")
+    NONCES_REMOTE+=("$nonce_remote")
+done
+
+# Print the addresses and their corresponding nonces
+for i in "${!TARGET_ADDRS[@]}"; do
+    echo "Address: ${TARGET_ADDRS[i]}, Nonce Origin: ${NONCES_ORIGIN[i]}, Nonce Remote: ${NONCES_REMOTE[i]}"
+done
+
+nonce_origin=${NONCES_ORIGIN[0]}
+send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin)) ${TARGET_ADDRS[1]}
+TX_PID=$!
+wait $TX_PID
+
+send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+1)) $GLOBAL_TIMESTAMP
+LZ_PID=$!
+wait $LZ_PID
+increment_timestamp
+
+send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+2)) $GLOBAL_TIMESTAMP
+HYP_PID=$!
+wait $HYP_PID
+increment_timestamp

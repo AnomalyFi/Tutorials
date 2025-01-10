@@ -86,7 +86,7 @@ func main() {
 		nonce2use = int64(queried)
 	}
 
-	fmt.Printf("sending bundle with nonce: %d\n", nonce)
+	fmt.Printf("sending bundle with nonce: %d\n", nonce2use)
 
 	gasPrice, err := originClient.SuggestGasPrice(context.TODO())
 	if err != nil {

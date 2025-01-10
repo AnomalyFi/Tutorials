@@ -100,6 +100,7 @@ func main() {
 		}
 		nonce2use = nonceQueried
 	}
+	fmt.Printf("sending bundle with nonce: %d\n", nonce2use)
 
 	gasPrice, err := originClient.SuggestGasPrice(context.TODO())
 	if err != nil {
