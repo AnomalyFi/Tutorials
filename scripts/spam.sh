@@ -3,7 +3,7 @@
 ROOT=$(pwd)
 INC=${INC:-0}
 HOST=${HOST:-127.0.0.1}
-SPAM_ITER=5
+SPAM_ITER=${SPAM_ITER:-20}
 
 LZ_PROGRAM_DIR="./layerzero-cross-rollup"
 HYP_PROGRAM_DIR="./hyperlane-cross-rollup"
@@ -18,6 +18,14 @@ REMOTE_GETH_PORT=$((19545 + $INC + 1))
 ORIGIN_GETH="http://$HOST:$ORIGIN_GETH_PORT"
 REMOTE_GETH="http://$HOST:$REMOTE_GETH_PORT"
 
+MAILBOX_ORIGIN=${MAILBOX_ORIGIN:-0xa513E6E4b8f2a923D98304ec87F64353C4D5C853}
+MAILBOX_REMOTE=${MAILBOX_REMOTE:-0xa513E6E4b8f2a923D98304ec87F64353C4D5C853}
+TR_ORIGIN=${TR_ORIGIN:-0x4A679253410272dd5232B3Ff7cF5dbB88f295319}
+TR_REMOTE=${TR_REMOTE:-0x4A679253410272dd5232B3Ff7cF5dbB88f295319}
+
+OFT_ORIGIN=${OFT_ORIGIN:-0x985060F8b809F08392FB4E23622E9E6881c22d0b}
+OFT_REMOTE=${OFT_REMOTE:-0x985060F8b809F08392FB4E23622E9E6881c22d0b}
+
 echo "origin chain: $ORIGIN_CHAINID; geth url: $ORIGIN_GETH"
 echo "remote chain: $REMOTE_CHAINID; geth url: $REMOTE_GETH"
 echo "javelin rpc: $JAVELIN_RPC"
@@ -31,6 +39,7 @@ NONCES_REMOTE=()
 
 # Loop through each address and get the nonce
 for addr in "${TARGET_ADDRS[@]}"; do
+    echo "checking nonce of $addr"
     # Fetch the nonce using cast nonce and store it in a variable
     nonce_origin=$(cast nonce "$addr" --rpc-url $ORIGIN_GETH)
     nonce_remote=$(cast nonce "$addr" --rpc-url $REMOTE_GETH)
@@ -39,6 +48,7 @@ for addr in "${TARGET_ADDRS[@]}"; do
     NONCES_ORIGIN+=("$nonce_origin")
     NONCES_REMOTE+=("$nonce_remote")
 done
+
 
 # Print the addresses and their corresponding nonces
 for i in "${!TARGET_ADDRS[@]}"; do
@@ -96,9 +106,13 @@ function send_transfer() {
     local target_chain=$1
     local privkey=$2
     local nonce=$3
-    local to=$3
+    local to=$4
 
-    cast send $to --rpc-url $target_chain --private-key $privkey --value 1
+    echo "sending transfer from $privkey to $to with nonce: $nonce on chain $target_chain"
+
+    cast send $to --rpc-url $target_chain --private-key $privkey --nonce $nonce &
+    PID=$!
+    return $PID
 }
 
 
@@ -132,31 +146,71 @@ function increment_timestamp() {
 
 nonce_origin=${NONCES_ORIGIN[0]}
 SPAM_PIDS=()
-for ((i=1;i<=$SPAM_ITER;i++));
+for ((i=0;i<$SPAM_ITER;i++));
 do
-    send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
-    TX_PID=$!
-    SPAM_PIDS+=("$LZ_PID")
+    rng=$((RANDOM % 3))
+    if [[ $rng -eq 0 ]] then
+        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
+        TX_PID=$!
+        SPAM_PIDS+=("$TX_PID")
 
-    send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-    LZ_PID=$!
-    SPAM_PIDS+=("$LZ_PID")
-    increment_timestamp
+        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+        LZ_PID=$!
+        SPAM_PIDS+=("$LZ_PID")
+        increment_timestamp
 
-    send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-    HYP_PID=$!
-    SPAM_PIDS+=("$LZ_PID")
-    increment_timestamp
+        send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+        HYP_PID=$!
+        SPAM_PIDS+=("$LZ_PID")
+        increment_timestamp
+    fi
+
+    if [[ $rng -eq 1 ]] then
+        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+        LZ_PID=$!
+        SPAM_PIDS+=("$LZ_PID")
+        increment_timestamp
+
+        sleep 0.3
+
+        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
+        TX_PID=$!
+        SPAM_PIDS+=("$TX_PID")
+
+        send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+        HYP_PID=$!
+        SPAM_PIDS+=("$LZ_PID")
+        increment_timestamp
+    fi
+
+    if [[ $rng -eq 2 ]] then
+        send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+        HYP_PID=$!
+        SPAM_PIDS+=("$LZ_PID")
+        increment_timestamp
+
+        sleep 0.3
+
+        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
+        LZ_PID=$!
+        SPAM_PIDS+=("$LZ_PID")
+        increment_timestamp
+
+        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
+        TX_PID=$!
+        SPAM_PIDS+=("$TX_PID")
+    fi
 done
 
 for pid in "${SPAM_PIDS[@]}"; do 
+    echo "waiting pid: $pid"
     wait $pid
     res=$?
-    echo "status code: $res"
+    echo "status code of pid: $pid: $res"
 done
 
 # sleep 20s waiting all bundles & txs are settled, either rejected or accepted
-sleep 20
+sleep 10
 
 # refresh current nonce
 NONCES_ORIGIN=()

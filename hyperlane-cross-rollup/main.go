@@ -162,9 +162,8 @@ func main() {
 	targetAddress := common.FromHex(*target)
 	// pad 0 to fill up the 32 bytes
 	var remoteAddress32 [32]byte
-	remoteAddress := hexutil.MustDecode(string(targetAddress))
-	copy(remoteAddress32[32-len(remoteAddress):], remoteAddress)
-	log.Printf("address32: %s, address: %s\n", hexutil.Encode(remoteAddress32[:]), hexutil.Encode(remoteAddress))
+	copy(remoteAddress32[32-len(targetAddress):], targetAddress)
+	log.Printf("address32: %s, address: %s\n", hexutil.Encode(remoteAddress32[:]), hexutil.Encode(targetAddress))
 
 	tx, err := tokenRouterOrigin.TransferRemote(auth, uint32(*remoteChainID), remoteAddress32, amount2transfer)
 	if err != nil {
@@ -189,6 +188,7 @@ func main() {
 		ts := uint64(*timestamp)
 		minTimestamp = &ts
 	}
+	log.Printf("bundle MinTimestamp: %d\n", *minTimestamp)
 	bundleArgs := flashbotsrpc.FlashbotsSendBundleCrossRollupRequest{
 		Txs:          txs,
 		BlockNumber:  blockNumber,
@@ -319,8 +319,9 @@ func waitForBundleAcceptance(ctx context.Context, pk *ecdsa.PrivateKey, rpc *fla
 				return nil
 			case "rejected":
 				log.Fatalf("bundle rejected, %s", bundleStatusResp.Status)
+				return nil
 			case "included":
-				log.Fatalf("bundle included, %s", bundleStatusResp.Status)
+				log.Printf("bundle included, %s", bundleStatusResp.Status)
 			default:
 				log.Printf("unknown bundle status: %s", bundleStatusResp.Status)
 			}

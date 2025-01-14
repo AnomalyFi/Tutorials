@@ -157,6 +157,7 @@ func main() {
 		ts := uint64(*timestamp)
 		minTimestamp = &ts
 	}
+	log.Printf("bundle MinTimestamp: %d\n", *minTimestamp)
 	bundleArgs := flashbotsrpc.FlashbotsSendBundleCrossRollupRequest{
 		Txs:          txs,
 		BlockNumber:  blockNumber,
@@ -233,6 +234,7 @@ func waitForBundleAcceptance(ctx context.Context, pk *ecdsa.PrivateKey, rpc *fla
 				return nil
 			case "rejected":
 				log.Fatalf("bundle rejected, %+v", bundleStatusResp.Status)
+				return nil
 			case "included":
 				log.Printf("bundle not sent to SEQ yet, Status: %s", bundleStatusResp.Status)
 			default:
