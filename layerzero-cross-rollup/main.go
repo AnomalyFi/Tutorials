@@ -173,17 +173,17 @@ func main() {
 	log.Printf("submitted bundle: %s\n", bundleHash)
 
 	ctx := context.Background()
-	bctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	bctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	if err := waitForBundleAcceptance(bctx, privKey, fbRpc, bundleHash); err != nil {
 		log.Fatalf("bundle not accepted: %s", err)
 	}
 	cancel()
 
-	tctx, cancel := context.WithTimeout(ctx, 180*time.Second)
+	tctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	txReceipt, err := waitForReceipt(tctx, originClient, tx.Hash())
 	if err != nil {
-		log.Fatalf("unable to get tx receipt: %+v\n", err)
+		log.Fatalf("unable to get tx(%s) receipt: %+v\n", tx.Hash().Hex(), err)
 	}
 
 	fmt.Printf("tx receipt: %+v\n", txReceipt)
@@ -226,7 +226,7 @@ func waitForBundleAcceptance(ctx context.Context, pk *ecdsa.PrivateKey, rpc *fla
 				log.Printf("error issuing eth_getBundleCrossRollup: %+v\n", err)
 				continue
 			}
-			log.Printf("status resp: %+v\n", bundleStatusResp)
+			log.Printf("bundle: %s status resp: %+v\n", bundleHash, bundleStatusResp)
 			// included
 			switch bundleStatusResp.Status {
 			case "accepted":

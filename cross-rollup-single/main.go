@@ -93,7 +93,7 @@ func main() {
 			log.Printf("error issuing eth_getBundleCrossRollup: %+v\n", err)
 			continue
 		}
-		log.Printf("status resp: %+v\n", bundleStatusResp)
+		log.Printf("bundle: %s status resp: %+v\n", bundleHash, bundleStatusResp)
 		// included
 		switch bundleStatusResp.StatusCode {
 		case 0x0:

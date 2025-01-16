@@ -4,8 +4,6 @@ ROOT=$(pwd)
 INC=${INC:-0}
 HOST=${HOST:-127.0.0.1}
 SPAM_ITER=${SPAM_ITER:-20}
-HYP_ENABLED=${HYP_ENABLED:-True}
-LZ_ENABLED=${LZ_ENABLED:-True}
 
 LZ_PROGRAM_DIR="./layerzero-cross-rollup"
 HYP_PROGRAM_DIR="./hyperlane-cross-rollup"
@@ -61,11 +59,6 @@ REVERSE_DIRECTION="reversed"
 NORMAL_DIRECTION="normal"
 
 function send_hyperlane_bundle() {
-    if [[ "$HYP_ENABLED" != "True" ]] then
-        echo "hyperlane not enabled, skipping"
-        return
-    fi
-
     local priv_key=$1
     local direction=$2 # normal or reversed 
     local target=$3
@@ -88,11 +81,6 @@ function send_hyperlane_bundle() {
 }
 
 function send_layerzero_bundle() {
-    if [[ "$LZ_ENABLED" != "True" ]] then
-        echo "layerzero not enabled, skipping"
-        return
-    fi
-
     local priv_key=$1
     local direction=$2 # normal or reversed 
     local target=$3
@@ -104,9 +92,9 @@ function send_layerzero_bundle() {
     cd $LZ_PROGRAM_DIR
     if test "$direction" = "$NORMAL_DIRECTION" 
     then
-        go run main.go --javelin $JAVELIN_RPC --geth-origin $ORIGIN_GETH --geth-remote $REMOTE_GETH --origin-chainid $ORIGIN_CHAINID --remote-chainid $REMOTE_CHAINID --priv-key $priv_key --amount 1000000000000 --nonce $nonce --target $target --timestamp $timestamp &
+        go run main.go --javelin $JAVELIN_RPC --geth-origin $ORIGIN_GETH --geth-remote $REMOTE_GETH --origin-chainid $ORIGIN_CHAINID --remote-chainid $REMOTE_CHAINID --priv-key $priv_key --amount 1 --nonce $nonce --target $target --timestamp $timestamp &
     else
-        go run main.go --javelin $JAVELIN_RPC --geth-origin $REMOTE_GETH --geth-remote $ORIGIN_GETH --origin-chainid $REMOTE_CHAINID --remote-chainid $ORIGIN_CHAINID --priv-key $priv_key --amount 1000000000000 --nonce $nonce --target $target --timestamp $timestamp &
+        go run main.go --javelin $JAVELIN_RPC --geth-origin $REMOTE_GETH --geth-remote $ORIGIN_GETH --origin-chainid $REMOTE_CHAINID --remote-chainid $ORIGIN_CHAINID --priv-key $priv_key --amount 1 --nonce $nonce --target $target --timestamp $timestamp &
     fi
 
     cd $ROOT
@@ -155,76 +143,6 @@ function increment_timestamp() {
 # send_transfer $REMOTE_GETH ${PRIVATE_KEYS[1]} 1 ${TARGET_ADDRS[1]}
 
 # increment_timestamp
-
-nonce_origin=${NONCES_ORIGIN[0]}
-SPAM_PIDS=()
-for ((i=0;i<$SPAM_ITER;i++));
-do
-    rng=$((RANDOM % 3))
-    if [[ $rng -eq 0 ]] then
-        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
-        TX_PID=$!
-        SPAM_PIDS+=("$TX_PID")
-
-        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-        LZ_PID=$!
-        SPAM_PIDS+=("$LZ_PID")
-        increment_timestamp
-
-        send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-        HYP_PID=$!
-        SPAM_PIDS+=("$HYP_PID")
-        increment_timestamp
-    fi
-
-    if [[ $rng -eq 1 ]] then
-        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-        LZ_PID=$!
-        SPAM_PIDS+=("$LZ_PID")
-        increment_timestamp
-
-        sleep 0.3
-
-        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
-        TX_PID=$!
-        SPAM_PIDS+=("$TX_PID")
-
-        send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-        HYP_PID=$!
-        SPAM_PIDS+=("$HYP_PID")
-        increment_timestamp
-    fi
-
-    if [[ $rng -eq 2 ]] then
-        send_hyperlane_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-        HYP_PID=$!
-        SPAM_PIDS+=("$HYP_PID")
-        increment_timestamp
-
-        sleep 0.3
-
-        send_layerzero_bundle ${PRIVATE_KEYS[0]} $NORMAL_DIRECTION ${TARGET_ADDRS[0]} $((nonce_origin+i)) $GLOBAL_TIMESTAMP
-        LZ_PID=$!
-        SPAM_PIDS+=("$LZ_PID")
-        increment_timestamp
-
-        send_transfer $ORIGIN_GETH ${PRIVATE_KEYS[0]} $((nonce_origin+i)) ${TARGET_ADDRS[1]}
-        TX_PID=$!
-        SPAM_PIDS+=("$TX_PID")
-    fi
-done
-
-for pid in "${SPAM_PIDS[@]}"; do 
-    echo "waiting pid: $pid"
-    wait $pid
-    res=$?
-    echo "status code of pid: $pid: $res"
-done
-
-echo "waiting all spam txs or bundles to be finished"
-# sleep 20s waiting all bundles & txs are settled, either rejected or accepted
-sleep 20
-
 # refresh current nonce
 NONCES_ORIGIN=()
 NONCES_REMOTE=()

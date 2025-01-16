@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -107,7 +108,7 @@ func main() {
 			log.Printf("error issuing eth_getBundleCrossRollup: %+v\n", err)
 			continue
 		}
-		log.Printf("status resp: %+v\n", bundleStatusResp)
+		log.Printf("bundle: %s status resp: %+v\n", bundleHash, bundleStatusResp)
 		// included
 		switch bundleStatusResp.StatusCode {
 		case 0x0:
@@ -207,4 +208,22 @@ func getEnvAsIntOrDefault(name string, defaultValue int) int {
 		}
 	}
 	return defaultValue
+}
+
+func NamespaceToChainID(ns []byte) *big.Int {
+	chainIDu64 := binary.LittleEndian.Uint64(ns)
+	return big.NewInt(int64(chainIDu64))
+}
+
+func ChainIDStr(chainID *big.Int) string {
+	return hexutil.EncodeBig(chainID)
+}
+
+func NamespaceToChainIDStr(ns []byte) string {
+	return ChainIDStr(NamespaceToChainID(ns))
+}
+
+func ChainID2Namespace(chainID *big.Int) []byte {
+	chainIDu64 := chainID.Uint64()
+	return binary.LittleEndian.AppendUint64(nil, chainIDu64)
 }
