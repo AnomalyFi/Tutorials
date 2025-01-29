@@ -188,7 +188,7 @@ func main() {
 		ts := uint64(*timestamp)
 		minTimestamp = &ts
 	}
-	log.Printf("bundle MinTimestamp: %d\n", *minTimestamp)
+	log.Printf("bundle MinTimestamp: %+v\n", minTimestamp)
 	bundleArgs := flashbotsrpc.FlashbotsSendBundleCrossRollupRequest{
 		Txs:          txs,
 		BlockNumber:  blockNumber,

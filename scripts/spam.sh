@@ -10,7 +10,7 @@ LZ_ENABLED=${LZ_ENABLED:-True}
 LZ_PROGRAM_DIR="./layerzero-cross-rollup"
 HYP_PROGRAM_DIR="./hyperlane-cross-rollup"
 
-JAVELIN_RPC=${JAVELIN_RPC:-http://127.0.0.1:3000/rpc}
+JAVELIN_RPC=${JAVELIN_RPC:-http://$HOST:3000/rpc}
 
 ORIGIN_CHAINID=$((45200 + $INC))
 REMOTE_CHAINID=$((45200 + $INC + 1))
